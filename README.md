@@ -80,4 +80,4 @@ The goal was to develop a compact, patient-focused system capable of real-time p
 
 Rohan Hablani || 
 rohan.hablani@gmail.com || 
-github.com/rohanH66
+[github.com/rohanH66](github.com/rohanH66)
