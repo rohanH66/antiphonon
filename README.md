@@ -1,13 +1,13 @@
 # ANTIPHONON, An Active Noise-Cancelling Apparatus for Dental Drills
 
 #### Development started: October 2020
-#### Development completed: August 2025
+#### Version 14 Finished: August 2025
 #### Repository finalized: October 2025
 
 
 ## Design Philosophy 
 
-The system’s design merges acoustic engineering with real-time digital signal processing, using Fourier analysis to isolate and invert the drill’s dominant frequency components for targeted phase-cancellation. Each iteration refined both the hardware geometry and spectral precision, transforming raw sound data into structured silence.
+The system’s design merges acoustic engineering with real-time digital signal processing, using the Fast Fourier Transform (FFT)/Fourier analysis to isolate and invert the drill’s dominant frequency components for targeted phase-cancellation. Each iteration refined both the hardware geometry and spectral precision, transforming raw sound data into structured silence.
 
 ## Overview
 
