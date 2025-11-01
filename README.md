@@ -21,7 +21,7 @@ The goal was to develop a compact, patient-focused system capable of real-time p
 
 ### Early Research and Hypothesis
 
-- Initial Hypothesis: Utilize **the spacing of sound waves** to model the viability of deconstructive sound interference
+- Initial Hypothesis: Utilize **the spacing of sound waves** to model the viability of destructive sound interference
 
 - Version 0 Prototype: Arduino Uno in tandem with KY-083 sound sensor
 
