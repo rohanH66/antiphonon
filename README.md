@@ -73,7 +73,7 @@ The goal was to develop a compact, patient-focused system capable of real-time p
 
 - Tuned the output loop to maintain phase alignment within ±3° around the ~7 kHz dominant drill tone
 
-- Final testing graphs and recordings demonstrated up to 34 dB of active noise reduction under controlled conditions
+- Final testing graphs and recordings demonstrated up to 34 dB of noise reduction
 
 
 ## Author Information
