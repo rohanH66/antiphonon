@@ -10,17 +10,22 @@
 #define MIC_DOUT    33
 #define CAL_BUTTON  5
 
-#define SAMPLE_RATE 44100
-#define BUFFER_SIZE 2048
-#define CHUNK_SAMPLES 1024
+#define SAMPLE_RATE     22050
+#define BUFFER_SIZE     2048
+#define CHUNK_SAMPLES   1024
 
-#define GAIN_SLEW_PER_SAMPLE 0.0005f
+#define GAIN_SLEW_PER_SAMPLE 50.00f
 #define PHASE_STEP_COARSE  (M_PI / 18.0)   // 10 deg
 #define PHASE_STEP_FINE    (M_PI / 180.0)  // 1 deg
-#define DWELL_MS           300
+#define DWELL_MS           600             // was 300: give speaker+mic time to settle
 #define DONE_BEEP_FREQ     400.0f
 #define DONE_BEEP_MS       300
-#define PLAYBACK_ATTEN     0.70f
+#define PLAYBACK_ATTEN     0.5f
+
+// measurement hygiene
+#define DISCARD_MS         100   // discard/warm-up before each measurement
+#define AVG_GAP_MS         50    // spacing between averaged FFT windows
+#define AFTER_WAIT_MS      800   // time to let transients die before AFTER read
 
 // FFT objects
 double vReal[BUFFER_SIZE];
@@ -38,7 +43,7 @@ float tonePhaseInc= 0.0f;
 float phaseOffset = 0.0f;
 
 float currentGain = 0.0f;
-float targetGain  = 8000.0f;
+float targetGain  = 1000.0f;
 
 volatile bool outputEnabled = true;
 volatile bool calibrating   = false;
@@ -78,6 +83,14 @@ void computePhaseIncrement() {
   tonePhaseInc = (2.0f * (float)M_PI * toneFreq) / SAMPLE_RATE;
 }
 
+static inline void discardAndWarmUpRead() {
+  // throw away one buffer after any change (phase, on/off) to flush DMA
+  size_t bytesRead;
+  i2s_read(I2S_NUM_0, (char*)sampleBuffer, sizeof(sampleBuffer), &bytesRead, portMAX_DELAY);
+  delay(DISCARD_MS); // short warm-up
+}
+
+// -------------------- Audio generation --------------------
 void generateAndWriteBlock() {
   for (int i = 0; i < CHUNK_SAMPLES; i++) {
     float s = sinf(tonePhase + phaseOffset);
@@ -98,6 +111,7 @@ void generateAndWriteBlock() {
   i2s_write(I2S_NUM_0, (char *)outBuffer, sizeof(outBuffer), &bw, portMAX_DELAY);
 }
 
+// -------------------- Beep --------------------
 void beep(float f, int ms) {
   float savedFreq  = toneFreq;
   float savedInc   = tonePhaseInc;
@@ -126,8 +140,13 @@ void beep(float f, int ms) {
   tonePhase   = savedPhase;
 }
 
+// -------------------- FFT utilities --------------------
 void dumpSpectrumCSV(const char* tag) {
   size_t bytesRead;
+
+  // Flush DMA + warm-up so spectrum is steady
+  discardAndWarmUpRead();
+
   i2s_read(I2S_NUM_0, (char*)sampleBuffer, sizeof(sampleBuffer), &bytesRead, portMAX_DELAY);
 
   for (int i = 0; i < BUFFER_SIZE; i++) {
@@ -141,13 +160,16 @@ void dumpSpectrumCSV(const char* tag) {
 
   for (int i = 10; i < BUFFER_SIZE / 2; i += 2) {
     float f = (float)i * SAMPLE_RATE / BUFFER_SIZE;
-    if (f < 2000.0f || f > 12000.0f) continue;
     Serial.printf("%s,%.0f,%.3f\n", tag, f, vReal[i]);
   }
 }
 
 float detectDominantFrequency(float &ampOut) {
   size_t bytesRead;
+
+  // discard first window after any recent change
+  discardAndWarmUpRead();
+
   i2s_read(I2S_NUM_0, (char*)sampleBuffer, sizeof(sampleBuffer), &bytesRead, portMAX_DELAY);
 
   for (int i = 0; i < BUFFER_SIZE; i++) {
@@ -159,8 +181,8 @@ float detectDominantFrequency(float &ampOut) {
   FFT.compute(FFT_FORWARD);
   FFT.complexToMagnitude();
 
-  int startBin = (int)(2000.0 * BUFFER_SIZE / SAMPLE_RATE);
-  int stopBin  = (int)(12000.0 * BUFFER_SIZE / SAMPLE_RATE);
+  int startBin = 1;  // skip DC
+  int stopBin  = BUFFER_SIZE / 2;
 
   int peakBin = startBin;
   double peakVal = vReal[startBin];
@@ -180,10 +202,14 @@ float detectDominantFrequency(float &ampOut) {
 }
 
 float measureAtFrequency(float f, int averages = 3) {
+  // one-time flush + warm-up
+  discardAndWarmUpRead();
+
   float sum = 0.0f;
   int bin = (int)(f * BUFFER_SIZE / SAMPLE_RATE);
+  size_t bytesRead;
+
   for (int a = 0; a < averages; a++) {
-    size_t bytesRead;
     i2s_read(I2S_NUM_0, (char*)sampleBuffer, sizeof(sampleBuffer), &bytesRead, portMAX_DELAY);
 
     for (int i = 0; i < BUFFER_SIZE; i++) {
@@ -195,6 +221,9 @@ float measureAtFrequency(float f, int averages = 3) {
     FFT.complexToMagnitude();
 
     sum += vReal[bin];
+
+    // small gap so the sound field fully updates
+    delay(AVG_GAP_MS);
   }
   return sum / (float)averages;
 }
@@ -204,20 +233,16 @@ void runCalibration() {
   calibrating = true;
   Serial.println("=== CALIBRATION START ===");
 
-  // 1. stop speaker, get clean BEFORE
   outputEnabled = false;
   delay(120);
   dumpSpectrumCSV("BEFORE");
 
-  // 2. clean FFT to find drill frequency
   float ampBefore = 0.0f;
   float detectedFreq = detectDominantFrequency(ampBefore);
 
-  // set new tone to this
   toneFreq = detectedFreq;
   computePhaseIncrement();
 
-  // derive gain from amplitude (simple rule)
   targetGain = (ampBefore / 2000.0f) * 1.5f;
   if (targetGain > 25000.0f) targetGain = 25000.0f;
   if (targetGain < 2000.0f)  targetGain = 2000.0f;
@@ -226,14 +251,13 @@ void runCalibration() {
   Serial.printf("Initial Amp: %.3f\n", ampBefore);
   Serial.printf("Target Gain: %.1f\n", targetGain);
 
-  // 3. turn speaker back on for sweep
   outputEnabled = true;
   delay(50);
 
   float bestPh  = 0.0f;
   float bestAmp = 1e12;
 
-  // coarse sweep
+  // ----- COARSE SWEEP -----
   for (float ph = -M_PI; ph <= M_PI; ph += PHASE_STEP_COARSE) {
     phaseOffset = ph;
     delay(DWELL_MS);
@@ -245,7 +269,7 @@ void runCalibration() {
     }
   }
 
-  // fine sweep around best
+  // ----- FINE SWEEP -----
   for (float ph = bestPh - 0.5f; ph <= bestPh + 0.5f; ph += PHASE_STEP_FINE) {
     phaseOffset = ph;
     delay(DWELL_MS);
@@ -257,37 +281,48 @@ void runCalibration() {
     }
   }
 
+  // ---- APPLY FINAL PHASE ----
   phaseOffset = bestPh;
 
-  // 4. turn speaker off again to measure AFTER
   outputEnabled = false;
-  delay(120);
+  delay(200); // let sound settle
   float ampAfter = measureAtFrequency(toneFreq, 5);
   float dropdB = 20.0f * log10f((ampBefore + 1e-9f) / (ampAfter + 1e-9f));
+
+  // ---- AUTO-FLIP IF WRONG PHASE ----
+  if (ampAfter > ampBefore) {
+    Serial.println(">>> Detected amplitude increase (constructive). Inverting phase...");
+    phaseOffset = wrap2pi(phaseOffset + M_PI);
+    outputEnabled = true;
+    delay(200);
+    outputEnabled = false;
+    float ampFlipped = measureAtFrequency(toneFreq, 5);
+    float newDropdB = 20.0f * log10f((ampBefore + 1e-9f) / (ampFlipped + 1e-9f));
+    Serial.printf(">>> After flip: %.2f dB improvement (%.4f vs %.4f)\n", newDropdB, ampBefore, ampFlipped);
+    ampAfter = ampFlipped;
+    dropdB = newDropdB;
+  }
 
   Serial.println("=== CALIBRATION COMPLETE ===");
   Serial.printf("Frequency: %.2f Hz\n", toneFreq);
   Serial.printf("Initial Amp: %.4f\n", ampBefore);
   Serial.printf("Final Amp:   %.4f\n", ampAfter);
-  Serial.printf("Reduction:   %.2f dB\n", dropdB);
+  Serial.printf("Change:      %.2f dB\n", dropdB);
   Serial.printf("Optimal Phase Offset: %.3f rad\n", phaseOffset);
 
-  // dump AFTER spectrum for inspection
   dumpSpectrumCSV("AFTER");
 
-  // 5. save to NVS
   prefs.begin("antiphonon", false);
   prefs.putFloat("freq", toneFreq);
   prefs.putFloat("phase", phaseOffset);
   prefs.putFloat("gain", targetGain);
   prefs.end();
 
-  // 6. turn speaker back on with new params
   outputEnabled = true;
   beep(DONE_BEEP_FREQ, DONE_BEEP_MS);
-
   calibrating = false;
 }
+
 
 // -------------------- Background audio task --------------------
 void audioTask(void *param) {
@@ -313,7 +348,7 @@ void setup() {
   prefs.begin("antiphonon", true);
   float savedF = prefs.getFloat("freq", 7000.0f);
   float savedP = prefs.getFloat("phase", 0.0f);
-  float savedG = prefs.getFloat("gain", 8000.0f);
+  float savedG = prefs.getFloat("gain", 1000.0f);
   prefs.end();
 
   toneFreq    = savedF;
