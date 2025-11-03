@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # ---------------- CONFIG ----------------
-PORT = "COM9"
+PORT = "COM22"
 BAUD = 115200
 OUTFILE = "anc_log.csv"
 # ----------------------------------------
