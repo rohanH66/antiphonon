@@ -21,11 +21,11 @@ The goal was to develop a compact, patient-focused system capable of real-time p
 
 ### Early Research and Hypothesis
 
-- Initial Hypothesis: Utilize **the spacing of sound waves** to model the viability of deconstructive sound interference
+- Initial Hypothesis: Utilize **the spacing of sound waves** to model the viability of destructive sound interference
 
 - Version 0 Prototype: Arduino Uno in tandem with KY-083 sound sensor
 
-- Hypothesis _validated_: Visualized interference via two speaker system and measured amplitude drops
+- Hypothesis _validated_: Visualized interference via a two speaker system and measured amplitude drops
 
 ### CAD Integration and Mechanical Design
 
@@ -38,7 +38,7 @@ The goal was to develop a compact, patient-focused system capable of real-time p
 </p>
 <p align="center"><em>Fig 1. Collage of original ANTIPHONON prototypes. Integration was a major focus of this iteration, which relied on an Arduino Nano for processing</em></p>
 
-- Tests were **successful** -- supported the **closed loop system**
+- Tests were **successful** -- supported the **closed-loop system theory**
 
 - Identified issues: weak PLA adhesion, internal angle misalignment, and vibration-based flexion
 
@@ -54,7 +54,7 @@ The goal was to develop a compact, patient-focused system capable of real-time p
 <p align="center">
   <img src="./media/cad_final.png" alt="CAD Final" width="400"/>
 </p>
-<p align="center"><em>Fig 2. Parametric CAD render illustrating component geometry optimized for consistent microphone-speaker spacing while simultaneously allowing for practice day-to-day use</em></p>
+<p align="center"><em>Fig 2. Parametric CAD render illustrating component geometry optimized for consistent microphone-speaker spacing while simultaneously allowing for practical day-to-day use</em></p>
 
 - Versions 6-14: Incremental redesigns optimizing acoustic cavity geometry and electronics fit
 
