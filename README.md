@@ -75,6 +75,35 @@ The goal was to develop a compact, patient-focused system capable of real-time p
 
 - Final testing graphs and recordings demonstrated up to 34 dB of noise reduction
 
+### Statistics (direct from command line)
+
+#### === ATTENUATION SUMMARY ===
+Target frequency: 7100.6 Hz
+
+Before amplitude: 8.702e+10
+
+After amplitude : 4.406e+10
+
+Drop: -5.91 dB
+
+#### === ANC RESULTS ===
+Before amplitude: 61340635136.00
+
+After amplitude : 41336299520.00
+
+Improvement     : 3.43 dB
+
+#### === STATISTICAL ANALYSIS (±200 Hz around 7100.6 Hz) ===
+Samples analyzed   : 37
+
+Mean dB change     : -3.59 dB
+
+T-statistic        : 2.730
+
+P-value            : 0.00974
+
+Result: Statistically very significant attenuation 
+
 
 ## Author Information
 
