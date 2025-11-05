@@ -1,4 +1,4 @@
-# ANTIPHONON, An Active Noise-Cancelling Apparatus for Dental Drills
+# ANTIPHONON: An Active Noise-Cancelling Apparatus for Dental Drills
 
 #### Development started: October 2020
 #### Version 14 Finished: August 2025
