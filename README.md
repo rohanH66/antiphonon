@@ -84,7 +84,7 @@ Before amplitude: 8.702e+10
 
 After amplitude : 4.406e+10
 
-Drop: -5.91 dB
+Drop : -5.91 dB
 
 #### === ANC RESULTS ===
 Before amplitude: 61340635136.00
