@@ -194,7 +194,6 @@ void runCalibration() {
   Serial.println("=== MEASURING DRILL-ONLY (BEFORE) ===");
   discardAndWarmUpRead();
 
-  // Dump pre-cancellation FFT
   size_t bytesRead;
   i2s_read(I2S_NUM_0, (char*)sampleBuffer, sizeof(sampleBuffer), &bytesRead, portMAX_DELAY);
   for (int i = 0; i < BUFFER_SIZE; i++) {
@@ -241,16 +240,16 @@ void runCalibration() {
     if (amp < bestAmp) { bestAmp = amp; bestPh = ph; }
   }
 
-  // --- Step 6: Apply optimal phase, let field stabilize 1 s ---
+  // --- Step 6: Apply optimal phase, let field stabilize ---
   phaseOffset = bestPh;
-  Serial.printf("Best Phase Found: %.3f rad — stabilizing...\n", bestPh);
+  Serial.printf("Best Phase Found: %.3f rad; stabilizing...\n", bestPh);
   delay(1000);
 
   // --- Step 7: Measure AFTER while still playing ---
   float ampAfter = measureAtFrequency(toneFreq, 7);
   float dropdB = 20.0f * log10f((ampBefore + 1e-9f) / (ampAfter + 1e-9f));
 
-  // --- Step 8: Dump post-cancellation FFT ---
+  // --- Step 8: post-cancellation FFT ---
   Serial.println("=== MEASURING AFTER CANCELLATION ===");
   discardAndWarmUpRead();
   i2s_read(I2S_NUM_0, (char*)sampleBuffer, sizeof(sampleBuffer), &bytesRead, portMAX_DELAY);
@@ -309,11 +308,11 @@ void setup() {
   phaseOffset = prefs.getFloat("phase", 0.0f);
   targetGain = prefs.getFloat("gain", 1000.0f);
   prefs.end();
-
+    
   computePhaseIncrement();
   xTaskCreatePinnedToCore(audioTask, "audioTask", 4096, NULL, 1, NULL, 0);
 
-  Serial.println("ANTIPHONON ready. Hold drill near mic and press CAL.");
+//   Serial.println("ANTIPHONON ready. Hold drill near mic and press CAL.");
 }
 
 // -------------------- Loop --------------------

@@ -95,7 +95,7 @@ def parse_and_plot():
     plt.plot(before["X"], before_db, label="Before (dB)")
     plt.plot(after["X"], after_db, label="After (dB)")
     plt.xlabel("Frequency (Hz)")
-    plt.ylabel("Amplitude (dB re Before peak)")
+    plt.ylabel("Amplitude (dB Before peak)")
     plt.title("FFT Spectrum Before vs After ANC (Shared Reference dB Scale)")
     plt.legend()
     plt.grid(True, alpha=0.4)
@@ -169,5 +169,5 @@ def parse_and_plot():
 
 
 if __name__ == "__main__":
-    log_serial()
+    # log_serial()
     parse_and_plot()
